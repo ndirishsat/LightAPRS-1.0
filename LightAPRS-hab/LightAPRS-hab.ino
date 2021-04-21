@@ -68,6 +68,8 @@ boolean autoPathSizeHighAlt = true; //force path to WIDE2-N only for high altitu
 boolean ublox_high_alt_mode = false;
 
 static char telemetry_buff[100];// telemetry buffer
+static uint8_t data_buff[253];// data buffer is 256 bytes - 3 bytes for identifier
+static size_t data_buff_len = 0;// data buffer length in bytes, must be less than equal to 253
 uint16_t TxCount = 1;
 
 TinyGPSPlus gps;
@@ -391,6 +393,16 @@ void sendStatus() {
 
   TxCount++;
 
+}
+
+void sendRawData() {
+  uint8_t FormattedData[256];
+  size_t CorrectedDataLen = (data_buff_len < 253) ? data_buff_len : 253; // prevent overrun
+  FormattedData[0] = '{';
+  FormattedData[1] = '{';
+  FormattedData[2] = 'N';
+  memcpy(FormattedData+3, data_buff, CorrectedDataLen);
+  APRS_sendPkt(FormattedData, CorrectedDataLen + 3 );
 }
 
 
