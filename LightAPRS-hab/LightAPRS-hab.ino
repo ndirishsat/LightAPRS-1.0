@@ -68,8 +68,10 @@ boolean autoPathSizeHighAlt = true; //force path to WIDE2-N only for high altitu
 boolean ublox_high_alt_mode = false;
 
 static char telemetry_buff[100];// telemetry buffer
-static uint8_t data_buff[253];// data buffer is 256 bytes - 3 bytes for identifier
-static size_t data_buff_len = 0;// data buffer length in bytes, must be less than equal to 253
+static volatile uint8_t data_buff[253];// data buffer is 256 bytes - 3 bytes for identifier
+static volatile size_t data_buff_len = 0;// data buffer length in bytes, must be less than equal to 253
+static volatile uint8_t PCSI_buff[256];// PCSI buffer
+static volatile size_t PCSI_buff_len = 0;// data buffer length in bytes, must be less than equal to 256
 uint16_t TxCount = 1;
 
 TinyGPSPlus gps;
@@ -401,8 +403,23 @@ void sendRawData() {
   FormattedData[0] = '{';
   FormattedData[1] = '{';
   FormattedData[2] = 'N';
-  memcpy(FormattedData+3, data_buff, CorrectedDataLen);
+  for (int i = 0; i < CorrectedDataLen; i++){
+    FormattedData[i+3] = data_buff[i];
+  }
   APRS_sendPkt(FormattedData, CorrectedDataLen + 3 );
+}
+
+void sendRawPCSI() {
+  uint8_t constPCSI[256];
+  size_t CorrectedDataLen = (PCSI_buff_len < 256) ? PCSI_buff_len : 256; // prevent overrun
+  for (int i = 0; i < CorrectedDataLen; i++){
+    constPCSI[i] = PCSI_buff[i];
+  }
+  APRS_setDestination("PCSI", 0);
+  APRS_setPathSize(0);
+  APRS_sendPkt(constPCSI, CorrectedDataLen);
+  APRS_setDestination("APLIGA", 0);
+  APRS_setPathSize(pathSize);
 }
 
 
