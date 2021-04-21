@@ -403,18 +403,22 @@ void sendRawData() {
   FormattedData[0] = '{';
   FormattedData[1] = '{';
   FormattedData[2] = 'N';
+  noInterrupts(); // double check that this doesn't break anything
   for (int i = 0; i < CorrectedDataLen; i++){
     FormattedData[i+3] = data_buff[i];
   }
+  interrupts();
   APRS_sendPkt(FormattedData, CorrectedDataLen + 3 );
 }
 
 void sendRawPCSI() {
-  uint8_t constPCSI[256];
+  uint8_t constPCSI[256]; // sendPkt() can't take a volatile pointer
   size_t CorrectedDataLen = (PCSI_buff_len < 256) ? PCSI_buff_len : 256; // prevent overrun
+  noInterrupts(); // double check that this doesn't break anything
   for (int i = 0; i < CorrectedDataLen; i++){
     constPCSI[i] = PCSI_buff[i];
   }
+  interrupts();
   APRS_setDestination("PCSI", 0);
   APRS_setPathSize(0);
   APRS_sendPkt(constPCSI, CorrectedDataLen);
