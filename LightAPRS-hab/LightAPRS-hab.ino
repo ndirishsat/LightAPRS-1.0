@@ -147,7 +147,7 @@ void loop() {
     if ((gps.location.age() < 1000 || gps.location.isUpdated()) && gps.location.isValid()) {
       if (gps.satellites.isValid() && (gps.satellites.value() > 3)) {
       updatePosition();
-      updateTelemetry();
+      updateTelemetryComp();
       
       //GpsOFF;
       setGPS_PowerSaveMode();
@@ -164,6 +164,10 @@ void loop() {
       //send status message every 60 minutes
       if(gps.time.minute() == 30){               
         sendStatus();       
+        // Telemetry meta data can be put somewhere else
+        // maybe every 100 position packets?
+        // or every 20-30 or mins? or after crossing 10,000ft?
+        sendTelemetryMetaData();
       } else {
 
          sendLocation();
@@ -336,6 +340,80 @@ void updateTelemetry() {
 
 }
 
+void sendTelemetryMetaData() {
+  const char parm[] = "PARM.Temp.,Press.,Battery,Sats";
+  const char unit[] = "UNIT.C,kPa,V";
+  const char eqns[] = "EQNS.0,.01,-273.2,.0000016,0,0,0,.01,0";
+  uint8_t count = 0;
+  char telmMeta[50] = ":";
+  char callNumS[3];
+  itoa(CallNumber, callNumS, 10);
+  strcat(telmMeta, CallSign);
+  strcat(telmMeta, "-");
+  strcat(telmMeta, callNumS);
+  uint8_t ptr;
+  for (ptr = strlen(telmMeta); ptr < 11; ptr++) {
+    *(telmMeta + ptr) = ' ';
+  }
+  telmMeta[10] = ':';
+
+
+  RfON;
+  delay(2000);
+  RfPttON;
+  delay(1000);
+
+  telmMeta[11] = '\0';
+  strcat(telmMeta, parm);
+  APRS_sendPkt(telmMeta, strlen(telmMeta));
+  while(digitalRead(1)){;}//LibAprs TX Led pin PB1
+  delay(1000);
+
+  telmMeta[11] = '\0';
+  strcat(telmMeta, unit);
+  APRS_sendPkt(telmMeta, strlen(telmMeta));
+  while(digitalRead(1)){;}//LibAprs TX Led pin PB1
+  delay(1000);
+
+  telmMeta[11] = '\0';
+  strcat(telmMeta, eqns);
+  APRS_sendPkt(telmMeta, strlen(telmMeta));
+  while(digitalRead(1)){;}//LibAprs TX Led pin PB1
+  delay(50);
+
+  RfPttOFF;
+  RfOFF;
+#if defined(DEVMODE)
+  Serial.println(F("Telemetry metadata sent"));
+#endif
+
+  TxCount+=3;
+}
+
+void updateTelemetryComp() {
+  //compressed telemetry format http://he.fi/doc/aprs-base91-comment-telemetry.txt
+  sprintf(telemetry_buff, "%03d", gps.course.isValid() ? (int)gps.course.deg() : 0);
+  telemetry_buff[3] += '/';
+  sprintf(telemetry_buff + 4, "%03d", gps.speed.isValid() ? (int)gps.speed.knots() : 0);
+  telemetry_buff[7] = '/';
+  telemetry_buff[8] = 'A';
+  telemetry_buff[9] = '=';
+  sprintf(telemetry_buff + 10, "%06lu", (long)gps.altitude.feet());
+  telemetry_buff[16] = '|'; TxCount &= 0x1FFF; // roll over
+  telemetry_buff[17] = TxCount / 91 + 33;
+  telemetry_buff[18] = TxCount % 91 + 33; uint16_t tempC = (bmp.readTemperature()+273.2)*100;// 100x C
+  telemetry_buff[19] = tempC / 91 + 33;
+  telemetry_buff[20] = tempC % 91 + 33; uint16_t pressure = 25 * sqrt(bmp.readPressure() ) ; // 20x root Pa
+  telemetry_buff[21] = pressure / 91 + 33;
+  telemetry_buff[22] = pressure % 91 + 33; uint16_t batteryV = 100 * readBatt();
+  telemetry_buff[23] = batteryV / 91 + 33;
+  telemetry_buff[24] = batteryV % 91 + 33; uint8_t satCount = gps.satellites.isValid() ? (uint8_t)gps.satellites.value() : 0;
+  telemetry_buff[25] = satCount / 91 + 33;
+  telemetry_buff[26] = satCount % 91 + 33;
+  telemetry_buff[27] = '|';
+  telemetry_buff[28] = '\0';
+}
+
 void sendLocation() {
 
 #if defined(DEVMODE)
@@ -408,10 +486,29 @@ void sendRawData() {
     FormattedData[i+3] = data_buff[i];
   }
   interrupts();
+
+  RfON;
+  delay(2000);
+  RfPttON;
+  delay(1000);
+
   APRS_sendPkt(FormattedData, CorrectedDataLen + 3 );
+
+  while(digitalRead(1)){;}//LibAprs TX Led pin PB1
+  delay(50);
+  RfPttOFF;
+  RfOFF;
+#if defined(DEVMODE)
+  Serial.println(F("Raw data sent"));
+#endif
+
+  TxCount++;
 }
 
 void sendRawPCSI() {
+  if ((readBatt() > DraHighVolt) && (readBatt() < 10)) RfPwrHigh; //DRA Power 1 Watt
+  else RfPwrLow; //DRA Power 0.5 Watt
+
   uint8_t constPCSI[256]; // sendPkt() can't take a volatile pointer
   size_t CorrectedDataLen = (PCSI_buff_len < 256) ? PCSI_buff_len : 256; // prevent overrun
   noInterrupts(); // double check that this doesn't break anything
@@ -421,7 +518,24 @@ void sendRawPCSI() {
   interrupts();
   APRS_setDestination("PCSI", 0);
   APRS_setPathSize(0);
+
+  RfON;
+  delay(2000);
+  RfPttON;
+  delay(1000);
+
   APRS_sendPkt(constPCSI, CorrectedDataLen);
+
+  while(digitalRead(1)){;}//LibAprs TX Led pin PB1
+  delay(50);
+  RfPttOFF;
+  RfOFF;
+#if defined(DEVMODE)
+  Serial.println(F("PCSI sent"));
+#endif
+
+  TxCount++;
+
   APRS_setDestination("APLIGA", 0);
   APRS_setPathSize(pathSize);
 }
