@@ -342,8 +342,8 @@ void updateTelemetry() {
 
 void sendTelemetryMetaData() {
   const char parm[] = "PARM.Temp.,Press.,Battery,Sats";
-  const char unit[] = "UNIT.C,kPa,V";
-  const char eqns[] = "EQNS.0,.01,-273.2,.0000016,0,0,0,.01,0";
+  const char unit[] = "UNIT.C,Pa,V";
+  const char eqns[] = "EQNS.0,.01,-273.2,.0016,0,0,0,.01,0"; // aprs.fi minimum coef is .00001
   uint8_t count = 0;
   char telmMeta[50] = ":";
   char callNumS[3];
