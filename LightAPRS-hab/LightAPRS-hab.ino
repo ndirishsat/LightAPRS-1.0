@@ -341,9 +341,9 @@ void updateTelemetry() {
 }
 
 void sendTelemetryMetaData() {
-  const char parm[] = "PARM.Temp.,Press.,Battery,Sats";
+  const char parm[] = "PARM.Temp,Press,Batt,Sats,PColl";
   const char unit[] = "UNIT.C,Pa,V";
-  const char eqns[] = "EQNS.0,.1,-273.2,.0016,0,0,0,.01,0"; // aprs.fi minimum coef is .00001
+  const char eqns[] = "EQNS.0,.1,-273.2,.0016,0,0,0,.01,0,0,1,0"; // aprs.fi minimum coef is .00001
   uint8_t count = 0;
   char telmMeta[50] = ":";
   char callNumS[3];
@@ -392,6 +392,8 @@ void sendTelemetryMetaData() {
 
 void updateTelemetryComp() {
   //compressed telemetry format http://he.fi/doc/aprs-base91-comment-telemetry.txt
+  static uint8_t packet_collisions = 0;
+  static uint16_t TelemTxCount = 0;
   sprintf(telemetry_buff, "%03d", gps.course.isValid() ? (int)gps.course.deg() : 0);
   telemetry_buff[3] += '/';
   sprintf(telemetry_buff + 4, "%03d", gps.speed.isValid() ? (int)gps.speed.knots() : 0);
@@ -399,9 +401,9 @@ void updateTelemetryComp() {
   telemetry_buff[8] = 'A';
   telemetry_buff[9] = '=';
   sprintf(telemetry_buff + 10, "%06lu", (long)gps.altitude.feet());
-  telemetry_buff[16] = '|'; TxCount &= 0x1FFF; // roll over
-  telemetry_buff[17] = TxCount / 91 + 33;
-  telemetry_buff[18] = TxCount % 91 + 33; uint16_t tempC = (bmp.readTemperature()+273.2)*10;// 100x C
+  telemetry_buff[16] = '|'; TelemTxCount &= 0x1FFF; // roll over
+  telemetry_buff[17] = TelemTxCount / 91 + 33;
+  telemetry_buff[18] = TelemTxCount % 91 + 33; uint16_t tempC = (bmp.readTemperature()+273.2)*10;// 100x C
   telemetry_buff[19] = tempC / 91 + 33;
   telemetry_buff[20] = tempC % 91 + 33; uint16_t pressure = 25 * sqrt(bmp.readPressure() ) ; // 20x root Pa
   telemetry_buff[21] = pressure / 91 + 33;
@@ -409,9 +411,13 @@ void updateTelemetryComp() {
   telemetry_buff[23] = batteryV / 91 + 33;
   telemetry_buff[24] = batteryV % 91 + 33; uint8_t satCount = gps.satellites.isValid() ? (uint8_t)gps.satellites.value() : 0;
   telemetry_buff[25] = satCount / 91 + 33;
-  telemetry_buff[26] = satCount % 91 + 33;
-  telemetry_buff[27] = '|';
-  telemetry_buff[28] = '\0';
+  telemetry_buff[26] = satCount % 91 + 33; packet_collisions += digitalRead(2); // libAPRS uses PORTB 2 as RX LED.
+  telemetry_buff[27] = packet_collisions / 91 + 33;
+  telemetry_buff[28] = packet_collisions % 91 + 33;
+  telemetry_buff[29] = '|';
+  telemetry_buff[30] = '\0';
+
+  TelemTxCount++;
 }
 
 void sendLocation() {
