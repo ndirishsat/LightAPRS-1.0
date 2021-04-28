@@ -1,0 +1,50 @@
+###########################################################################################################
+## This file is created by maqifrnswa for use with MightyCore                                            ##
+## it adds options for I2C/TWI and Serial port buffer sizes                                              ##
+###########################################################################################################
+
+# Menu options
+menu.SerialBuf=Serial Port Buffers (RX/TX)
+menu.TWIBuf=I2C/TWI Buffers
+
+
+######################
+#### ATmega1284/P ####
+######################
+
+#Serial Buffer
+1284.menu.SerialBuf.disabled=Default (64/64)
+1284.menu.SerialBuf.disabled.compilerSB.c.extra_flags=
+1284.menu.SerialBuf.disabled.compilerSB.cpp.extra_flags=
+
+1284.menu.SerialBuf.SB27632=276/32
+1284.menu.SerialBuf.SB27632.compilerSB.c.extra_flags=-DSERIAL_RX_BUFFER_SIZE=276 -DSERIAL_TX_BUFFER_SIZE=32
+1284.menu.SerialBuf.SB27632.compilerSB.cpp.extra_flags=-DSERIAL_RX_BUFFER_SIZE=276 -DSERIAL_TX_BUFFER_SIZE=32
+
+#I2C/TWI Buffers
+1284.menu.TWIBuf.disabled=Default (32)
+1284.menu.TWIBuf.disabled.compilerTWI.c.extra_flags=
+1284.menu.TWIBuf.disabled.compilerTWI.cpp.extra_flags=
+
+1284.menu.TWIBuf.TWI128=128
+1284.menu.TWIBuf.TWI128.compilerTWI.c.extra_flags=-DTWI_BUFFER_SIZE=128
+1284.menu.TWIBuf.TWI128.compilerTWI.cpp.extra_flags=-DTWI_BUFFER_SIZE=128
+
+1284.menu.TWIBuf.TWI276=276
+1284.menu.TWIBuf.TWI276.compilerTWI.c.extra_flags=-DTWI_BUFFER_SIZE=276
+1284.menu.TWIBuf.TWI276.compilerTWI.cpp.extra_flags=-DTWI_BUFFER_SIZE=276
+
+
+
+# Compiler link time optimization
+1284.menu.LTO.Os=LTO disabled
+1284.menu.LTO.Os.compiler.c.extra_flags={compilerSB.c.extra_flags} {compilerTWI.c.extra_flags}
+1284.menu.LTO.Os.compiler.c.elf.extra_flags=
+1284.menu.LTO.Os.compiler.cpp.extra_flags={compilerSB.c.extra_flags} {compilerTWI.c.extra_flags}
+1284.menu.LTO.Os.ltoarcmd=avr-ar
+
+1284.menu.LTO.Os_flto=LTO enabled
+1284.menu.LTO.Os_flto.compiler.c.extra_flags={compilerSB.c.extra_flags} {compilerTWI.c.extra_flags} -Wextra -flto -g
+1284.menu.LTO.Os_flto.compiler.c.elf.extra_flags=-w -flto -g
+1284.menu.LTO.Os_flto.compiler.cpp.extra_flags={compilerSB.c.extra_flags} {compilerTWI.c.extra_flags} -Wextra -flto -g
+1284.menu.LTO.Os_flto.ltoarcmd=avr-gcc-ar
