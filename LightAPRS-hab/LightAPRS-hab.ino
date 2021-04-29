@@ -31,38 +31,38 @@
 //#define DEVMODE // Development mode. Uncomment to enable for debugging.
 
 //****************************************************************************
-char  CallSign[7]="NOCALL"; //DO NOT FORGET TO CHANGE YOUR CALLSIGN
-int   CallNumber=11; //SSID http://www.aprs.org/aprs11/SSIDs.txt
-char  Symbol='O'; // '/O' for balloon, '/>' for car, for more info : http://www.aprs.org/symbols/symbols-new.txt
+char  CallSign[7] = "NOCALL"; //DO NOT FORGET TO CHANGE YOUR CALLSIGN
+int   CallNumber = 11; //SSID http://www.aprs.org/aprs11/SSIDs.txt
+char  Symbol = 'O'; // '/O' for balloon, '/>' for car, for more info : http://www.aprs.org/symbols/symbols-new.txt
 bool alternateSymbolTable = false ; //false = '/' , true = '\'
 
-char Frequency[9]="144.3900"; //default frequency. 144.3900 for US, 144.8000 for Europe
+char Frequency[9] = "144.3900"; //default frequency. 144.3900 for US, 144.8000 for Europe
 
 char comment[50] = "http://www.lightaprs.com"; // Max 50 char
-char StatusMessage[50] = "LightAPRS by TA9OHC & TA2MUN"; 
+char StatusMessage[50] = "LightAPRS by TA9OHC & TA2MUN";
 //*****************************************************************************
 
 
-unsigned int   BeaconWait=60;  //seconds sleep for next beacon (TX).
-unsigned int   BattWait=60;    //seconds sleep if super capacitors/batteries are below BattMin (important if power source is solar panel) 
-float BattMin=4.5;        // min Volts to wake up.
-float DraHighVolt=8.0;    // min Volts for radio module (DRA818V) to transmit (TX) 1 Watt, below this transmit 0.5 Watt. You don't need 1 watt on a balloon. Do not change this.
-//float GpsMinVolt=4.0; //min Volts for GPS to wake up. (important if power source is solar panel) 
+unsigned int   BeaconWait = 60; //seconds sleep for next beacon (TX).
+unsigned int   BattWait = 60;  //seconds sleep if super capacitors/batteries are below BattMin (important if power source is solar panel)
+float BattMin = 4.5;      // min Volts to wake up.
+float DraHighVolt = 8.0;  // min Volts for radio module (DRA818V) to transmit (TX) 1 Watt, below this transmit 0.5 Watt. You don't need 1 watt on a balloon. Do not change this.
+//float GpsMinVolt=4.0; //min Volts for GPS to wake up. (important if power source is solar panel)
 
 boolean aliveStatus = true; //for tx status message on first wake-up just once.
 
-//do not change WIDE path settings below if you don't know what you are doing :) 
-byte  Wide1=1; // 1 for WIDE1-1 path
-byte  Wide2=1; // 1 for WIDE2-1 path
+//do not change WIDE path settings below if you don't know what you are doing :)
+byte  Wide1 = 1; // 1 for WIDE1-1 path
+byte  Wide2 = 1; // 1 for WIDE2-1 path
 
 /**
-Airborne stations above a few thousand feet should ideally use NO path at all, or at the maximum just WIDE2-1 alone.  
-Due to their extended transmit range due to elevation, multiple digipeater hops are not required by airborne stations.  
-Multi-hop paths just add needless congestion on the shared APRS channel in areas hundreds of miles away from the aircraft's own location.  
-NEVER use WIDE1-1 in an airborne path, since this can potentially trigger hundreds of home stations simultaneously over a radius of 150-200 miles. 
- */
-int pathSize=2; // 2 for WIDE1-N,WIDE2-N ; 1 for WIDE2-N
-boolean autoPathSizeHighAlt = true; //force path to WIDE2-N only for high altitude (airborne) beaconing (over 1.000 meters (3.280 feet)) 
+  Airborne stations above a few thousand feet should ideally use NO path at all, or at the maximum just WIDE2-1 alone.
+  Due to their extended transmit range due to elevation, multiple digipeater hops are not required by airborne stations.
+  Multi-hop paths just add needless congestion on the shared APRS channel in areas hundreds of miles away from the aircraft's own location.
+  NEVER use WIDE1-1 in an airborne path, since this can potentially trigger hundreds of home stations simultaneously over a radius of 150-200 miles.
+*/
+int pathSize = 2; // 2 for WIDE1-N,WIDE2-N ; 1 for WIDE2-N
+boolean autoPathSizeHighAlt = true; //force path to WIDE2-N only for high altitude (airborne) beaconing (over 1.000 meters (3.280 feet))
 
 //boolean GpsFirstFix=false;
 boolean ublox_high_alt_mode = false;
@@ -87,7 +87,7 @@ void setup() {
   pinMode(RfPwrHLPin, OUTPUT);
   pinMode(RfPttPin, OUTPUT);
   pinMode(BattPin, INPUT);
-  pinMode(PIN_DRA_TX,INPUT);
+  pinMode(PIN_DRA_TX, INPUT);
 
   RfOFF;
   GpsOFF;
@@ -100,103 +100,103 @@ void setup() {
 #if defined(DEVMODE)
   Serial.println(F("Start"));
 #endif
-      
+
   APRS_init(ADC_REFERENCE, OPEN_SQUELCH);
-  APRS_setCallsign(CallSign,CallNumber);
+  APRS_setCallsign(CallSign, CallNumber);
   APRS_setDestination("APLIGA", 0);
   APRS_setMessageDestination("APLIGA", 0);
   APRS_setPath1("WIDE1", Wide1);
   APRS_setPath2("WIDE2", Wide2);
-  APRS_useAlternateSymbolTable(alternateSymbolTable); 
+  APRS_useAlternateSymbolTable(alternateSymbolTable);
   APRS_setSymbol(Symbol);
-  //increase following value (for example to 500UL) if you experience packet loss/decode issues. 
-  APRS_setPreamble(350UL);  
+  //increase following value (for example to 500UL) if you experience packet loss/decode issues.
+  APRS_setPreamble(350UL);
   APRS_setPathSize(pathSize);
 
   configDra818(Frequency);
 
   bmp.begin();
- 
+
 }
 
 void loop() {
-   wdt_reset();
-  
+  wdt_reset();
+
   if (readBatt() > BattMin) {
-  
-  if(aliveStatus){
+
+    if (aliveStatus) {
 
       //send status tx on startup once (before gps fix)
-      
-      #if defined(DEVMODE)
-        Serial.println(F("Sending"));
-      #endif
+
+#if defined(DEVMODE)
+      Serial.println(F("Sending"));
+#endif
       sendStatus();
-      #if defined(DEVMODE)
-        Serial.println(F("Sent"));
-      #endif
-      
+#if defined(DEVMODE)
+      Serial.println(F("Sent"));
+#endif
+
       aliveStatus = false;
-      
-   }
-    
+
+    }
+
     updateGpsData(1000);
     gpsDebug();
 
-    
+
     if ((gps.location.age() < 1000 || gps.location.isUpdated()) && gps.location.isValid()) {
       if (gps.satellites.isValid() && (gps.satellites.value() > 3)) {
-      updatePosition();
-      updateTelemetryComp();
-      
-      //GpsOFF;
-      setGPS_PowerSaveMode();
-      //GpsFirstFix=true;
+        updatePosition();
+        updateTelemetryComp();
 
-      if(autoPathSizeHighAlt && gps.altitude.feet()>3000){
-            //force to use high altitude settings (WIDE2-n)
-            APRS_setPathSize(1);
+        //GpsOFF;
+        setGPS_PowerSaveMode();
+        //GpsFirstFix=true;
+
+        if (autoPathSizeHighAlt && gps.altitude.feet() > 3000) {
+          //force to use high altitude settings (WIDE2-n)
+          APRS_setPathSize(1);
         } else {
-            //use defualt settings  
-            APRS_setPathSize(pathSize);
+          //use defualt settings
+          APRS_setPathSize(pathSize);
         }
-      
-      //send status message every 60 minutes
-      if(gps.time.minute() == 30){               
-        sendStatus();       
-        // Telemetry meta data can be put somewhere else
-        // maybe every 100 position packets?
-        // or every 20-30 or mins? or after crossing 10,000ft?
-        sendTelemetryMetaData();
-      } else {
 
-         sendLocation();
+        //send status message every 60 minutes
+        if (gps.time.minute() == 30) {
+          sendStatus();
+          // Telemetry meta data can be put somewhere else
+          // maybe every 100 position packets?
+          // or every 20-30 or mins? or after crossing 10,000ft?
+          sendTelemetryMetaData();
+        } else {
 
-      }
+          sendLocation();
 
-      freeMem();
-      Serial.flush();
-      sleepSeconds(BeaconWait);
+        }
+
+        freeMem();
+        Serial.flush();
+        sleepSeconds(BeaconWait);
 
       } else {
 #if defined(DEVMODE)
-      Serial.println(F("Not enough sattelites"));
+        Serial.println(F("Not enough sattelites"));
 #endif
       }
-    } 
+    }
   } else {
 
     sleepSeconds(BattWait);
-    
+
   }
-  
+
 }
 
 void aprs_msg_callback(struct AX25Msg *msg) {
   //do not remove this function, necessary for LibAPRS
 }
 
-void sleepSeconds(int sec) {  
+void sleepSeconds(int sec) {
   //if(GpsFirstFix)GpsOFF;//sleep gps after first fix
   RfOFF;
   RfPttOFF;
@@ -204,9 +204,9 @@ void sleepSeconds(int sec) {
   wdt_disable();
   for (int i = 0; i < sec; i++) {
     //if(readBatt() < GpsMinVolt) GpsOFF;  //(for pico balloon only)
-    LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_ON);   
+    LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_ON);
   }
-   wdt_enable(WDTO_8S);
+  wdt_enable(WDTO_8S);
 }
 
 
@@ -233,7 +233,7 @@ byte configDra818(char *freq)
   }
   Serial_dra.end();
   RfOFF;
-  pinMode(PIN_DRA_TX,INPUT);
+  pinMode(PIN_DRA_TX, INPUT);
 #if defined(DEVMODE)
   if (ack[0] == 0x30) Serial.println(F("Frequency updated...")); else Serial.println(F("Frequency update error!"));
 #endif
@@ -303,7 +303,7 @@ void updatePosition() {
 
 
 void updateTelemetry() {
- 
+
   sprintf(telemetry_buff, "%03d", gps.course.isValid() ? (int)gps.course.deg() : 0);
   telemetry_buff[3] += '/';
   sprintf(telemetry_buff + 4, "%03d", gps.speed.isValid() ? (int)gps.speed.knots() : 0);
@@ -332,7 +332,7 @@ void updateTelemetry() {
   telemetry_buff[52] = 'S';
   telemetry_buff[53] = ' ';
   sprintf(telemetry_buff + 54, "%s", comment);
-  
+
 
 #if defined(DEVMODE)
   Serial.println(telemetry_buff);
@@ -366,19 +366,25 @@ void sendTelemetryMetaData() {
   telmMeta[11] = '\0';
   strcat(telmMeta, parm);
   APRS_sendPkt(telmMeta, strlen(telmMeta));
-  while(digitalRead(1)){;}//LibAprs TX Led pin PB1
+  while (digitalRead(1)) {
+    ; //LibAprs TX Led pin PB1
+  }
   delay(1000);
 
   telmMeta[11] = '\0';
   strcat(telmMeta, unit);
   APRS_sendPkt(telmMeta, strlen(telmMeta));
-  while(digitalRead(1)){;}//LibAprs TX Led pin PB1
+  while (digitalRead(1)) {
+    ; //LibAprs TX Led pin PB1
+  }
   delay(1000);
 
   telmMeta[11] = '\0';
   strcat(telmMeta, eqns);
   APRS_sendPkt(telmMeta, strlen(telmMeta));
-  while(digitalRead(1)){;}//LibAprs TX Led pin PB1
+  while (digitalRead(1)) {
+    ; //LibAprs TX Led pin PB1
+  }
   delay(50);
 
   RfPttOFF;
@@ -387,7 +393,7 @@ void sendTelemetryMetaData() {
   Serial.println(F("Telemetry metadata sent"));
 #endif
 
-  TxCount+=3;
+  TxCount += 3;
 }
 
 void updateTelemetryComp() {
@@ -403,7 +409,7 @@ void updateTelemetryComp() {
   sprintf(telemetry_buff + 10, "%06lu", (long)gps.altitude.feet());
   telemetry_buff[16] = '|'; TelemTxCount &= 0x1FFF; // roll over
   telemetry_buff[17] = TelemTxCount / 91 + 33;
-  telemetry_buff[18] = TelemTxCount % 91 + 33; uint16_t tempC = (bmp.readTemperature()+273.2)*10;// 100x C
+  telemetry_buff[18] = TelemTxCount % 91 + 33; uint16_t tempC = (bmp.readTemperature() + 273.2) * 10; // 100x C
   telemetry_buff[19] = tempC / 91 + 33;
   telemetry_buff[20] = tempC % 91 + 33; uint16_t pressure = 25 * sqrt(bmp.readPressure() ) ; // 20x root Pa
   telemetry_buff[21] = pressure / 91 + 33;
@@ -423,7 +429,7 @@ void updateTelemetryComp() {
 void sendLocation() {
 
 #if defined(DEVMODE)
-      Serial.println(F("Location sending with comment"));
+  Serial.println(F("Location sending with comment"));
 #endif
   if ((readBatt() > DraHighVolt) && (readBatt() < 10)) RfPwrHigh; //DRA Power 1 Watt
   else RfPwrLow; //DRA Power 0.5 Watt
@@ -443,11 +449,13 @@ void sendLocation() {
   delay(2000);
   RfPttON;
   delay(1000);
-  
+
   //APRS_sendLoc(telemetry_buff, strlen(telemetry_buff)); //beacon without timestamp
   APRS_sendLocWtTmStmp(telemetry_buff, strlen(telemetry_buff), timestamp_buff); //beacon with timestamp
-  
-  while(digitalRead(1)){;}//LibAprs TX Led pin PB1
+
+  while (digitalRead(1)) {
+    ; //LibAprs TX Led pin PB1
+  }
   delay(50);
   RfPttOFF;
   RfOFF;
@@ -466,10 +474,12 @@ void sendStatus() {
   delay(2000);
   RfPttON;
   delay(1000);
-    
+
   APRS_sendStatus(StatusMessage, strlen(StatusMessage));
 
-  while(digitalRead(1)){;}//LibAprs TX Led pin PB1
+  while (digitalRead(1)) {
+    ; //LibAprs TX Led pin PB1
+  }
   delay(50);
   RfPttOFF;
   RfOFF;
@@ -488,8 +498,8 @@ void sendRawData() {
   FormattedData[1] = '{';
   FormattedData[2] = 'N';
   noInterrupts(); // double check that this doesn't break anything
-  for (int i = 0; i < CorrectedDataLen; i++){
-    FormattedData[i+3] = data_buff[i];
+  for (int i = 0; i < CorrectedDataLen; i++) {
+    FormattedData[i + 3] = data_buff[i];
   }
   interrupts();
 
@@ -500,7 +510,9 @@ void sendRawData() {
 
   APRS_sendPkt(FormattedData, CorrectedDataLen + 3 );
 
-  while(digitalRead(1)){;}//LibAprs TX Led pin PB1
+  while (digitalRead(1)) {
+    ; //LibAprs TX Led pin PB1
+  }
   delay(50);
   RfPttOFF;
   RfOFF;
@@ -518,7 +530,7 @@ void sendRawPCSI() {
   uint8_t constPCSI[256]; // sendPkt() can't take a volatile pointer
   size_t CorrectedDataLen = (PCSI_buff_len < 256) ? PCSI_buff_len : 256; // prevent overrun
   noInterrupts(); // double check that this doesn't break anything
-  for (int i = 0; i < CorrectedDataLen; i++){
+  for (int i = 0; i < CorrectedDataLen; i++) {
     constPCSI[i] = PCSI_buff[i];
   }
   interrupts();
@@ -532,7 +544,9 @@ void sendRawPCSI() {
 
   APRS_sendPkt(constPCSI, CorrectedDataLen);
 
-  while(digitalRead(1)){;}//LibAprs TX Led pin PB1
+  while (digitalRead(1)) {
+    ; //LibAprs TX Led pin PB1
+  }
   delay(50);
   RfPttOFF;
   RfOFF;
@@ -552,27 +566,27 @@ static void updateGpsData(int ms)
   GpsON;
 
   //if(!ublox_high_alt_mode){
-      //enable ublox high altitude mode
-      delay(100);
-      setGPS_DynamicModel6();
-      ublox_high_alt_mode = true;
-   //}
+  //enable ublox high altitude mode
+  delay(100);
+  setGPS_DynamicModel6();
+  ublox_high_alt_mode = true;
+  //}
 
   while (!Serial1) {
     delayMicroseconds(1); // wait for serial port to connect.
   }
-    unsigned long start = millis();
-    unsigned long bekle=0;
-    do
-    {
-      while (Serial1.available()>0) {
-        char c;
-        c=Serial1.read();
-        gps.encode(c);
-        bekle= millis();
-      }
-      if (bekle!=0 && bekle+10<millis())break;
-    } while (millis() - start < ms);
+  unsigned long start = millis();
+  unsigned long bekle = 0;
+  do
+  {
+    while (Serial1.available() > 0) {
+      char c;
+      c = Serial1.read();
+      gps.encode(c);
+      bekle = millis();
+    }
+    if (bekle != 0 && bekle + 10 < millis())break;
+  } while (millis() - start < ms);
 
 }
 
@@ -580,13 +594,13 @@ float readBatt() {
   float R1 = 560000.0; // 560K
   float R2 = 100000.0; // 100K
   float value = 0.0;
-  do { 
-    value =analogRead(BattPin);
+  do {
+    value = analogRead(BattPin);
     delay(5);
-    value =analogRead(BattPin);
-    value=value-8;
+    value = analogRead(BattPin);
+    value = value - 8;
     value = (value * 2.56) / 1024.0;
-    value = value / (R2/(R1+R2));
+    value = value / (R2 / (R1 + R2));
   } while (value > 16.0);
   return value ;
 }
@@ -700,100 +714,103 @@ static void printStr(const char *str, int len)
 //following GPS code from : https://github.com/HABduino/HABduino/blob/master/Software/habduino_v4/habduino_v4.ino
 void setGPS_DynamicModel6()
 {
- int gps_set_sucess=0;
- uint8_t setdm6[] = {
- 0xB5, 0x62, 0x06, 0x24, 0x24, 0x00, 0xFF, 0xFF, 0x06,
- 0x03, 0x00, 0x00, 0x00, 0x00, 0x10, 0x27, 0x00, 0x00,
- 0x05, 0x00, 0xFA, 0x00, 0xFA, 0x00, 0x64, 0x00, 0x2C,
- 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
- 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x16, 0xDC };
- 
- while(!gps_set_sucess)
- {
- sendUBX(setdm6, sizeof(setdm6)/sizeof(uint8_t));
- gps_set_sucess=getUBX_ACK(setdm6);
- }
+  int gps_set_sucess = 0;
+  uint8_t setdm6[] = {
+    0xB5, 0x62, 0x06, 0x24, 0x24, 0x00, 0xFF, 0xFF, 0x06,
+    0x03, 0x00, 0x00, 0x00, 0x00, 0x10, 0x27, 0x00, 0x00,
+    0x05, 0x00, 0xFA, 0x00, 0xFA, 0x00, 0x64, 0x00, 0x2C,
+    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x16, 0xDC
+  };
+
+  while (!gps_set_sucess)
+  {
+    sendUBX(setdm6, sizeof(setdm6) / sizeof(uint8_t));
+    gps_set_sucess = getUBX_ACK(setdm6);
+  }
 }
 
 void setGPS_DynamicModel3()
 {
-  int gps_set_sucess=0;
+  int gps_set_sucess = 0;
   uint8_t setdm3[] = {
     0xB5, 0x62, 0x06, 0x24, 0x24, 0x00, 0xFF, 0xFF, 0x03,
     0x03, 0x00, 0x00, 0x00, 0x00, 0x10, 0x27, 0x00, 0x00,
     0x05, 0x00, 0xFA, 0x00, 0xFA, 0x00, 0x64, 0x00, 0x2C,
     0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x13, 0x76           };
-  while(!gps_set_sucess)
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x13, 0x76
+  };
+  while (!gps_set_sucess)
   {
-    sendUBX(setdm3, sizeof(setdm3)/sizeof(uint8_t));
-    gps_set_sucess=getUBX_ACK(setdm3);
+    sendUBX(setdm3, sizeof(setdm3) / sizeof(uint8_t));
+    gps_set_sucess = getUBX_ACK(setdm3);
   }
 }
 
 void sendUBX(uint8_t *MSG, uint8_t len) {
- Serial1.flush();
- Serial1.write(0xFF);
- _delay_ms(500);
- for(int i=0; i<len; i++) {
- Serial1.write(MSG[i]);
- }
+  Serial1.flush();
+  Serial1.write(0xFF);
+  _delay_ms(500);
+  for (int i = 0; i < len; i++) {
+    Serial1.write(MSG[i]);
+  }
 }
 boolean getUBX_ACK(uint8_t *MSG) {
- uint8_t b;
- uint8_t ackByteID = 0;
- uint8_t ackPacket[10];
- unsigned long startTime = millis();
- 
-// Construct the expected ACK packet
- ackPacket[0] = 0xB5; // header
- ackPacket[1] = 0x62; // header
- ackPacket[2] = 0x05; // class
- ackPacket[3] = 0x01; // id
- ackPacket[4] = 0x02; // length
- ackPacket[5] = 0x00;
- ackPacket[6] = MSG[2]; // ACK class
- ackPacket[7] = MSG[3]; // ACK id
- ackPacket[8] = 0; // CK_A
- ackPacket[9] = 0; // CK_B
- 
-// Calculate the checksums
- for (uint8_t ubxi=2; ubxi<8; ubxi++) {
- ackPacket[8] = ackPacket[8] + ackPacket[ubxi];
- ackPacket[9] = ackPacket[9] + ackPacket[8];
- }
- 
-while (1) {
- 
-// Test for success
- if (ackByteID > 9) {
- // All packets in order!
- return true;
- }
- 
-// Timeout if no valid response in 3 seconds
- if (millis() - startTime > 3000) {
- return false;
- }
- 
-// Make sure data is available to read
- if (Serial1.available()) {
- b = Serial1.read();
- 
-// Check that bytes arrive in sequence as per expected ACK packet
- if (b == ackPacket[ackByteID]) {
- ackByteID++;
- }
- else {
- ackByteID = 0; // Reset and look again, invalid order
- }
- }
- }
+  uint8_t b;
+  uint8_t ackByteID = 0;
+  uint8_t ackPacket[10];
+  unsigned long startTime = millis();
+
+  // Construct the expected ACK packet
+  ackPacket[0] = 0xB5; // header
+  ackPacket[1] = 0x62; // header
+  ackPacket[2] = 0x05; // class
+  ackPacket[3] = 0x01; // id
+  ackPacket[4] = 0x02; // length
+  ackPacket[5] = 0x00;
+  ackPacket[6] = MSG[2]; // ACK class
+  ackPacket[7] = MSG[3]; // ACK id
+  ackPacket[8] = 0; // CK_A
+  ackPacket[9] = 0; // CK_B
+
+  // Calculate the checksums
+  for (uint8_t ubxi = 2; ubxi < 8; ubxi++) {
+    ackPacket[8] = ackPacket[8] + ackPacket[ubxi];
+    ackPacket[9] = ackPacket[9] + ackPacket[8];
+  }
+
+  while (1) {
+
+    // Test for success
+    if (ackByteID > 9) {
+      // All packets in order!
+      return true;
+    }
+
+    // Timeout if no valid response in 3 seconds
+    if (millis() - startTime > 3000) {
+      return false;
+    }
+
+    // Make sure data is available to read
+    if (Serial1.available()) {
+      b = Serial1.read();
+
+      // Check that bytes arrive in sequence as per expected ACK packet
+      if (b == ackPacket[ackByteID]) {
+        ackByteID++;
+      }
+      else {
+        ackByteID = 0; // Reset and look again, invalid order
+      }
+    }
+  }
 }
 
 void setGPS_PowerSaveMode() {
-  // Power Save Mode 
-  uint8_t setPSM[] = { 
-    0xB5, 0x62, 0x06, 0x11, 0x02, 0x00, 0x08, 0x01, 0x22, 0x92           }; // Setup for Power Save Mode (Default Cyclic 1s)
-  sendUBX(setPSM, sizeof(setPSM)/sizeof(uint8_t));
+  // Power Save Mode
+  uint8_t setPSM[] = {
+    0xB5, 0x62, 0x06, 0x11, 0x02, 0x00, 0x08, 0x01, 0x22, 0x92
+  }; // Setup for Power Save Mode (Default Cyclic 1s)
+  sendUBX(setPSM, sizeof(setPSM) / sizeof(uint8_t));
 }
