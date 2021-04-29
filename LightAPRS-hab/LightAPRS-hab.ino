@@ -6,6 +6,9 @@
 #include <Adafruit_BMP085.h>//https://github.com/adafruit/Adafruit-BMP085-Library
 #include <avr/wdt.h>
 
+// included wire.h
+#include <Wire.h>
+
 #define RfPDPin     19
 #define GpsVccPin   18
 #define RfPwrHLPin  21
@@ -31,15 +34,16 @@
 //#define DEVMODE // Development mode. Uncomment to enable for debugging.
 
 //****************************************************************************
-char  CallSign[7] = "NOCALL"; //DO NOT FORGET TO CHANGE YOUR CALLSIGN
+char  CallSign[7] = "KN6NOR"; //DO NOT FORGET TO CHANGE YOUR CALLSIGN
 int   CallNumber = 11; //SSID http://www.aprs.org/aprs11/SSIDs.txt
 char  Symbol = 'O'; // '/O' for balloon, '/>' for car, for more info : http://www.aprs.org/symbols/symbols-new.txt
 bool alternateSymbolTable = false ; //false = '/' , true = '\'
 
 char Frequency[9] = "144.3900"; //default frequency. 144.3900 for US, 144.8000 for Europe
 
-char comment[50] = "http://www.lightaprs.com"; // Max 50 char
-char StatusMessage[50] = "LightAPRS by TA9OHC & TA2MUN";
+char comment[50] = "Univ. Notre Dame: IRIS/ICARUS CubeSat Mission"; // Max 50 char
+char StatusMessage[50] = "Univ. Notre Dame: IRIS/ICARUS CubeSat Mission";
+
 //*****************************************************************************
 
 
@@ -73,6 +77,13 @@ static volatile size_t data_buff_len = 0;// data buffer length in bytes, must be
 static volatile uint8_t PCSI_buff[256];// PCSI buffer
 static volatile size_t PCSI_buff_len = 0;// data buffer length in bytes, must be less than equal to 256
 uint16_t TxCount = 1;
+
+// adding alternate TxCount
+uint16_t altTxCount = 0;
+
+// adding PCSI event boolean
+boolean PCSI_event = false;
+
 
 TinyGPSPlus gps;
 Adafruit_BMP085 bmp;
@@ -116,6 +127,12 @@ void setup() {
   configDra818(Frequency);
 
   bmp.begin();
+
+  // Wire library stuff
+  // change i2c address
+  Wire.begin(4);                // join i2c bus with address #4
+  Wire.onReceive(receiveEvent); // register event
+  // Serial.begin(9600);           // start serial for output
 
 }
 
@@ -164,6 +181,8 @@ void loop() {
         //send status message every 60 minutes
         if (gps.time.minute() == 30) {
           sendStatus();
+          altTxCount++;
+
           // Telemetry meta data can be put somewhere else
           // maybe every 100 position packets?
           // or every 20-30 or mins? or after crossing 10,000ft?
@@ -171,6 +190,42 @@ void loop() {
         } else {
 
           sendLocation();
+          altTxCount++;
+
+        }
+
+        // adding if statement to call sendRawData() if
+        // raw_data_len > 250 (is this a bad idea?) maybe
+        // add a timer boolean to regulate transmissions
+
+        if (data_buff_len > 250) {
+
+          // add a delay??
+
+          sendRawData();
+          altTxCount++;
+
+          // reinitialize data_buff
+          // data_buff ???
+          data_buff_len = 0;
+
+        }
+
+        // adding if statement to send PCSI packets upon PCSI I2C event
+        // changes frequency for transmission and then changes back
+
+        if (PCSI_event && altTxCount == 5) {
+
+          configDra818(146.125);
+          sendRawPCSI();
+          configDra818(144.390);
+
+          altTxCount = 0;
+          PCSI_event = false;
+
+          // reinitialize PCSI_buff
+          // PCSI_buff ???
+          PCSI_buff_len = 0;
 
         }
 
@@ -189,6 +244,46 @@ void loop() {
     sleepSeconds(BattWait);
 
   }
+
+}
+
+void receiveEvent(int numBytes)
+{
+
+  //separate berstein from PCSI
+  int i = 0;
+
+  char first = Wire.read();
+
+  if (first == "z") {
+    while (0 < Wire.available()) // loop through all bytes
+    {
+
+      data_buff[i] = Wire.read();// receive byte as a character, store in array
+      i++;
+      data_buff_len++;
+
+    }
+  }
+  else {
+    while (0 < Wire.available()) { // loop through all bytes
+
+      PCSI_buff[i] = Wire.read();
+      i++;
+      PCSI_buff_len++;
+
+    }
+    PCSI_event = true;
+  }
+
+  // ORIGINAL CODE
+  //  while(1 < Wire.available()) // loop through all but the last
+  //  {
+  //    char c = Wire.read(); // receive byte as a character
+  //    Serial.print(c);         // print the character
+  //  }
+  //  int x = Wire.read();    // receive byte as an integer
+  //  Serial.println(x);         // print the integer
 
 }
 
