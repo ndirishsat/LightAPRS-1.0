@@ -40,6 +40,7 @@ char  Symbol = 'O'; // '/O' for balloon, '/>' for car, for more info : http://ww
 bool alternateSymbolTable = false ; //false = '/' , true = '\'
 
 char Frequency[9] = "144.3900"; //default frequency. 144.3900 for US, 144.8000 for Europe
+char FrequencyPCSI[9] = "146.1250";
 
 char comment[50] = "Univ. Notre Dame: IRIS/ICARUS CubeSat Mission"; // Max 50 char
 char StatusMessage[50] = "Univ. Notre Dame: IRIS/ICARUS CubeSat Mission";
@@ -193,6 +194,7 @@ void loop() {
           altTxCount++;
 
         }
+        wdt_reset(); // just to be safe
 
         // adding if statement to call sendRawData() if
         // raw_data_len > 250 (is this a bad idea?) maybe
@@ -215,10 +217,11 @@ void loop() {
         // changes frequency for transmission and then changes back
 
         if (PCSI_event && altTxCount == 5) {
+          wdt_reset();
 
-          configDra818(146.125);
+          configDra818(FrequencyPCSI);
           sendRawPCSI();
-          configDra818(144.390);
+          configDra818(Frequency);
 
           altTxCount = 0;
           PCSI_event = false;
@@ -255,7 +258,7 @@ void receiveEvent(int numBytes)
 
   char first = Wire.read();
 
-  if (first == "z") {
+  if (first == 'z') {
     while (0 < Wire.available()) // loop through all bytes
     {
 
